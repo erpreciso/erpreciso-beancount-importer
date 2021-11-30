@@ -1,0 +1,7 @@
+# all data files
+/data/
+/old-stuff/
+/config/categorizer.py
+/config/bank_data.py
+/config/__pycache__
+/src/importers/__pycache__/
