@@ -1,0 +1,13 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Mon Nov 29 17:05:05 2021
+
+@author: c740
+"""
+
+[build-system]
+requires = [
+    "setuptools>=42",
+    "wheel"
+]
+build-backend = "setuptools.build_meta"
