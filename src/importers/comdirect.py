@@ -2,7 +2,6 @@ import csv
 from datetime import datetime, timedelta
 from itertools import count
 import re
-import warnings
 from os import path
 
 from beancount.core.amount import Amount
@@ -10,16 +9,6 @@ from beancount.core import data
 from beancount.ingest import importer
 from src.importers import helpers
 
-
-BANKS = ('ING', 'ING-DiBa')
-
-META_KEYS = ('IBAN', 'Kontoname', 'Bank', 'Kunde', 'Zeitraum', 'Saldo')
-
-PRE_HEADER = (
-    'In der CSV-Datei finden Sie alle bereits gebuchten Umsätze. '
-    'Die vorgemerkten Umsätze werden nicht aufgenommen, auch wenn sie in '
-    'Ihrem Internetbanking angezeigt werden.'
-)
 
 class ComdirectImporter(importer.ImporterProtocol):
     def __init__(
@@ -106,43 +95,48 @@ class ComdirectImporter(importer.ImporterProtocol):
             def split_payee_desc(date, txt):
                 regex = r'Kto/IBAN: |Empfänger: |Auftraggeber: | Buchungstext: '
                 s = re.split(regex, txt)
-                if len(s)==2 and txt.find('Buchungstext')<0:
+                test = txt.find('Buchungstext') or txt.find('Entgelt')
+                if len(s)==2 and test<0:
+                    payee, description = s[0], s[1]
+                elif len(s)==2 and test>=0:  # case of Entgelt Visa-Kreditkarte
                     payee, description = s[0], s[1]
                 else:
                     payee, description = s[1], s[2]
                 return payee, description
             for row in reader:
-                line = dict(zip(field_names, row))
-                date = line['Buchungstag']
-                payee, description = split_payee_desc(date, line['Buchungstext'])
-                amount = line['Umsatz in EUR']
-                currency = 'EUR'
-                meta = data.new_metadata(filename=file_.name,
-                                         lineno=self._line_index,
-                                         # kvlist={'source_desc': ';'.join(row)},
-                                         )
-                amount = Amount(helpers._format_number_de(amount), currency)
-                if date == 'offen':
-                    m = datetime.today() + timedelta(days=7)
-                    date = m.date() 
-                else:
-                    date = datetime.strptime(date, '%d.%m.%Y').date()
-                posting_meta = {'source_desc': ';'.join(row)}
-                postings = [
-                    # data.Posting('Expenses:FIXME', -amount, None, None, None, None),
-                    data.Posting(self.account, amount, None, None, None, posting_meta)
-                ]
-                entries.append(
-                    data.Transaction(
-                        meta,
-                        date,
-                        self.FLAG,
-                        payee,
-                        description,
-                        data.EMPTY_SET,
-                        data.EMPTY_SET,
-                        postings,
-                    )
-                )
-                self._line_index += 1
+                if row != []:
+                    line = dict(zip(field_names, row))
+                    date = line['Buchungstag']
+                    if date != "Alter Kontostand":
+                        payee, description = split_payee_desc(date, line['Buchungstext'])
+                        amount = line['Umsatz in EUR']
+                        currency = 'EUR'
+                        meta = data.new_metadata(filename=file_.name,
+                                                 lineno=self._line_index,
+                                                 # kvlist={'source_desc': ';'.join(row)},
+                                                 )
+                        amount = Amount(helpers._format_number_de(amount), currency)
+                        if date == 'offen':
+                            m = datetime.today() + timedelta(days=7)
+                            date = m.date() 
+                        else:
+                            date = datetime.strptime(date, '%d.%m.%Y').date()
+                        posting_meta = {'source_desc': ';'.join(row)}
+                        postings = [
+                            # data.Posting('Expenses:FIXME', -amount, None, None, None, None),
+                            data.Posting(self.account, amount, None, None, None, posting_meta)
+                        ]
+                        entries.append(
+                            data.Transaction(
+                                meta,
+                                date,
+                                self.FLAG,
+                                payee,
+                                description,
+                                data.EMPTY_SET,
+                                data.EMPTY_SET,
+                                postings,
+                            )
+                        )
+                        self._line_index += 1
         return entries
