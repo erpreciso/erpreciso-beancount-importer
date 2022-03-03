@@ -32,7 +32,9 @@ class ComdirectImporter(importer.ImporterProtocol):
         return line == ';'
 
     def _is_valid_second_header(self, line):
-        return line == '"Umsätze Girokonto";"Zeitraum: 10 Tage";'
+        line1 = line == '"Umsätze Girokonto";"Zeitraum: 10 Tage";'
+        line2 = line == '"Umsätze Girokonto";"Zeitraum: 30 Tage";'
+        return line1 or line2
 
     def identify(self, file_):
         m = r"umsaetze_" + self.knt + r"_\d{8}-\d{4}.csv"

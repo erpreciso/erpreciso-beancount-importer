@@ -14,24 +14,51 @@ from beancount_categorizer import PayeeCategorizer
 
 from src.importers.ec import ECImporter
 from src.importers.comdirect import ComdirectImporter
-from config.categorizer import categorizer_dict
-from config import bank_data
 
+
+
+"""
+Example of categorizer:
+    
+    categorizer_dict = {
+        "Expenses:Family:Groceries": ["PENNY AUF DER WANNE",
+                                      "Penny Auf der Wanne",
+                                      "NAH UND GUT",
+                                      "KAUFLAND",
+                                      "DM DROGERIEMARKT SAGT DANKE"],
+        "Expenses:Family:House:TV-Tax": ["Rundfunk ARD, ZDF, DRadio"],
+    }
+    
+"""
+
+from config.categorizer import categorizer_dict
 categorizer = PayeeCategorizer(categorizer_dict)
 
+"""
+Sensitive data are stored in separate file 'personal_data'.
 
+Example:
+    ing_iban = "valid IBAN"
+    comdirect_account_number = "valid 10-digits account number"
+    ing_account = 'Assets:blabla'
+    comdirect_account = 'Assets:blabla'
+    ing_identifier = 'John Doe'
+
+"""
+
+from config import personal_data
 CONFIG = [
     apply_hooks(
         ECImporter(
-            bank_data.iban,
-            'Assets:Stefano:DibaChecking',
-            'Stefano Merlo',
+            personal_data.ing_iban,
+            personal_data.ing_account,
+            personal_data.ing_identifier,
             file_encoding='ISO-8859-1',
             ), [categorizer, PredictPostings()]),
     apply_hooks(
         ComdirectImporter(
-            bank_data.knt,
-            'Assets:Family:Comdirect',
+            personal_data.comdirect_account_number,
+            personal_data.comdirect_account,
             file_encoding='ISO-8859-1',
             ), [categorizer, PredictPostings()])
 ]
